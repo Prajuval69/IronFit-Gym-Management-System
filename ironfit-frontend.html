@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>IronFit — Gym Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;
+  --bg2:#13131a;
+  --bg3:#1c1c26;
+  --border:#2a2a3a;
+  --border2:#3a3a50;
+  --accent:#6c63ff;
+  --accent2:#a78bfa;
+  --green:#22d3a0;
+  --red:#f87171;
+  --amber:#fbbf24;
+  --text:#f0effe;
+  --text2:#a0a0c0;
+  --text3:#5a5a7a;
+  --mono:'DM Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+  --display:'Syne',sans-serif;
+  --radius:10px;
+  --radius-lg:16px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Layout ─────────────────────────────────────────── */
+.app{display:flex;flex:1;height:100vh;overflow:hidden}
+.sidebar{width:240px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg2)}
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Sidebar ─────────────────────────────────────────── */
+.logo{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.logo-icon{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-family:var(--display);font-size:17px;font-weight:800;letter-spacing:-0.5px}
+.logo-text span{color:var(--accent2)}
+
+.nav-section{padding:12px 8px 4px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;padding-left:16px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;border-radius:8px;margin:2px 8px;color:var(--text2);font-size:13px;transition:all 0.15s;border:none;background:none;width:calc(100% - 16px);text-align:left}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(108,99,255,0.15);color:var(--accent2);font-weight:500}
+.nav-icon{font-size:15px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:99px;font-family:var(--mono)}
+
+/* ── Top Bar ─────────────────────────────────────────── */
+.page-title{font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:-0.3px}
+.base-url-bar{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;font-family:var(--mono);font-size:12px;color:var(--text2)}
+.base-url-bar input{background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;width:220px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+/* ── Endpoint Panel ──────────────────────────────────── */
+.endpoint-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:12px;overflow:hidden;transition:border-color 0.2s}
+.endpoint-card:hover{border-color:var(--border2)}
+.endpoint-header{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none}
+.method-badge{font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 8px;border-radius:5px;min-width:52px;text-align:center;letter-spacing:0.5px}
+.method-GET{background:rgba(34,211,160,0.12);color:var(--green)}
+.method-POST{background:rgba(108,99,255,0.15);color:var(--accent2)}
+.method-PUT{background:rgba(251,191,36,0.12);color:var(--amber)}
+.method-DELETE{background:rgba(248,113,113,0.12);color:var(--red)}
+.endpoint-path{font-family:var(--mono);font-size:13px;color:var(--text);flex:1}
+.endpoint-desc{font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.expand-arrow{color:var(--text3);font-size:12px;transition:transform 0.2s;margin-left:auto}
+.endpoint-card.open .expand-arrow{transform:rotate(180deg)}
+
+.endpoint-body{border-top:1px solid var(--border);padding:18px;display:none;flex-direction:column;gap:14px}
+.endpoint-card.open .endpoint-body{display:flex}
+
+/* ── Form Elements ───────────────────────────────────── */
+.param-grid{display:grid;gap:10px}
+.param-row{display:flex;flex-direction:column;gap:4px}
+.param-label{font-size:11px;color:var(--text3);font-family:var(--mono);display:flex;gap:6px;align-items:center}
+.param-required{color:var(--red);font-size:10px}
+.param-input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color 0.2s;width:100%}
+.param-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--bg3)}
+.param-hint{font-size:10px;color:var(--text3)}
+
+.send-btn{align-self:flex-start;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:9px 18px;font-family:var(--display);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity 0.2s}
+.send-btn:hover{opacity:0.85}
+.send-btn:disabled{opacity:0.4;cursor:not-allowed}
+.send-btn .spin{display:none;animation:spin 0.8s linear infinite}
+.send-btn.loading .spin{display:inline-block}
+.send-btn.loading .idle{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Response ────────────────────────────────────────── */
+.response-box{border-radius:var(--radius);overflow:hidden}
+.response-meta{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-bottom:none;border-radius:var(--radius) var(--radius) 0 0;font-size:11px;font-family:var(--mono)}
+.status-pill{padding:2px 8px;border-radius:99px;font-size:10px;font-weight:500}
+.s2xx{background:rgba(34,211,160,0.12);color:var(--green)}
+.s4xx,.s5xx{background:rgba(248,113,113,0.12);color:var(--red)}
+.response-time{color:var(--text3)}
+.response-pre{background:var(--bg3);border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);padding:14px;font-family:var(--mono);font-size:11px;line-height:1.7;overflow-x:auto;max-height:380px;overflow-y:auto;color:var(--text2);white-space:pre-wrap;word-break:break-all}
+.json-key{color:var(--accent2)}
+.json-str{color:var(--green)}
+.json-num{color:var(--amber)}
+.json-bool{color:var(--red)}
+.json-null{color:var(--text3)}
+
+/* ── Dashboard ───────────────────────────────────────── */
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.stat-value{font-family:var(--display);font-size:26px;font-weight:700;color:var(--text);line-height:1}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.stat-card.accent{border-color:rgba(108,99,255,0.3);background:rgba(108,99,255,0.06)}
+.stat-card.green{border-color:rgba(34,211,160,0.25);background:rgba(34,211,160,0.05)}
+
+/* ── Section header ──────────────────────────────────── */
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.section-title{font-family:var(--display);font-size:15px;font-weight:700}
+.section-count{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:99px;border:1px solid var(--border)}
+.section-line{flex:1;height:1px;background:var(--border)}
+
+/* ── Tabs ────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:4px;padding:4px;background:var(--bg3);border-radius:var(--radius);margin-bottom:18px;border:1px solid var(--border)}
+.tab{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-radius:7px;transition:all 0.15s;border:none;background:none}
+.tab.active{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+
+/* ── Members table ───────────────────────────────────── */
+.members-table{width:100%;border-collapse:collapse;font-size:12px}
+.members-table th{text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:500}
+.members-table td{padding:10px 12px;border-bottom:1px solid rgba(42,42,58,0.6);color:var(--text2)}
+.members-table tr:hover td{background:var(--bg3)}
+.status-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:10px}
+.status-active{background:rgba(34,211,160,0.1);color:var(--green)}
+.status-frozen{background:rgba(108,99,255,0.12);color:var(--accent2)}
+
+/* ── Plans grid ──────────────────────────────────────── */
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.plan-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;transition:border-color 0.2s;cursor:default}
+.plan-card:hover{border-color:var(--border2)}
+.plan-name{font-family:var(--display);font-size:16px;font-weight:700;margin-bottom:4px}
+.plan-price{font-family:var(--mono);font-size:22px;color:var(--accent2);font-weight:500}
+.plan-price span{font-size:12px;color:var(--text3)}
+.plan-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.badge{font-size:10px;padding:2px 7px;border-radius:4px;font-family:var(--mono)}
+.badge-green{background:rgba(34,211,160,0.1);color:var(--green)}
+.badge-gray{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+
+/* ── DE Section ──────────────────────────────────────── */
+.de-card{background:var(--bg2);border:1px solid rgba(108,99,255,0.25);border-radius:var(--radius-lg);padding:18px;margin-bottom:12px}
+.de-label{font-size:10px;font-family:var(--mono);color:var(--accent2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px}
+.de-title{font-family:var(--display);font-size:14px;font-weight:700;margin-bottom:4px}
+.de-desc{font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:12px}
+
+/* ── Skill tags ──────────────────────────────────────── */
+.skill-tags{display:flex;flex-wrap:wrap;gap:6px}
+.skill-tag{font-size:10px;font-family:var(--mono);padding:3px 8px;border-radius:4px;background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+
+/* ── Notification ────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;font-size:12px;color:var(--text);z-index:9999;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:rgba(34,211,160,0.4)}
+.toast.error{border-color:rgba(248,113,113,0.4)}
+
+@media(max-width:768px){
+  .sidebar{display:none}
+  .endpoint-desc{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">💪</div>
+      <div class="logo-text">Iron<span>Fit</span></div>
+    </div>
+
+    <div class="nav-section">Overview</div>
+    <button class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">⬡</span> Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('plans-view')">
+      <span class="nav-icon">◈</span> Plans
+    </button>
+    <button class="nav-item" onclick="showPage('members-view')">
+      <span class="nav-icon">◉</span> Members
+    </button>
+
+    <div class="nav-section">API Explorer</div>
+    <button class="nav-item" onclick="showPage('plans-api')">
+      <span class="nav-icon">◇</span> Plans API
+      <span class="nav-badge">7</span>
+    </button>
+    <button class="nav-item" onclick="showPage('memberships-api')">
+      <span class="nav-icon">◇</span> Memberships API
+      <span class="nav-badge">6</span>
+    </button>
+    <button class="nav-item" onclick="showPage('classes-api')">
+      <span class="nav-icon">◇</span> Classes API
+      <span class="nav-badge">3</span>
+    </button>
+
+    <div class="nav-section">Data Engineering</div>
+    <button class="nav-item" onclick="showPage('de-api')">
+      <span class="nav-icon">◈</span> Analytics & ETL
+      <span class="nav-badge">5</span>
+    </button>
+
+    <div style="margin-top:auto;padding:12px 8px 16px">
+      <div style="padding:12px;background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:10px;margin:0 8px">
+        <div style="font-size:10px;color:var(--accent2);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">API Docs</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.5">Start server, then visit <code style="color:var(--accent2)">/docs</code> for Swagger UI</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px;font-family:var(--mono)">uvicorn main:app --reload</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="base-url-bar">
+        <div class="status-dot" id="status-dot" style="background:var(--text3)"></div>
+        <span style="color:var(--text3);font-size:11px">BASE URL</span>
+        <input id="base-url" value="http://127.0.0.1:8000" placeholder="http://127.0.0.1:8000"/>
+        <button onclick="checkConnection()" style="background:none;border:none;cursor:pointer;color:var(--accent2);font-size:11px;font-family:var(--mono)">ping ↗</button>
+      </div>
+    </div>
+
+    <!-- CONTENT AREA -->
+    <div class="content">
+
+      <!-- ══ DASHBOARD ══════════════════════════════════════ -->
+      <div id="page-dashboard" class="page">
+        <div class="dashboard-grid">
+          <div class="stat-card accent">
+            <div class="stat-label">Total Plans</div>
+            <div class="stat-value" id="d-plans">—</div>
+            <div class="stat-sub">Active offerings</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Members</div>
+            <div class="stat-value" id="d-members">—</div>
+            <div class="stat-sub">Enrolled</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Revenue</div>
+            <div class="stat-value" id="d-revenue">—</div>
+            <div class="stat-sub">Total collected</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active</div>
+            <div class="stat-value" id="d-active">—</div>
+            <div class="stat-sub">Active memberships</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Plans at a glance</div>
+          <div class="section-line"></div>
+        </div>
+        <div id="d-plans-grid" class="plans-grid" style="margin-bottom:24px">
+          <div style="color:var(--text3);font-size:12px">Loading plans…</div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Members</div>
+          <div class="section-line"></div>
+        </div>
+        <table class="members-table" id="d-members-table">
+          <thead><tr><th>Name</th><th>Plan</th><th>Fee</th><th>Status</th><th>Month</th></tr></thead>
+          <tbody id="d-members-body"><tr><td colspan="5" style="color:var(--text3)">Loading…</td></tr></tbody>
+        </table>
+
+        <div style="margin-top:24px">
+          <div class="section-header">
+            <div class="section-title">Data Engineering features</div>
+            <div class="section-line"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+            <div class="de-card">
+              <div class="de-label">DE-1</div>
+              <div class="de-title">Revenue Analytics</div>
+              <div class="de-desc">Pandas groupby, agg, describe — plan-level and mode-level revenue</div>
+              <div class="skill-tags">
+                <span class="skill-tag">pandas</span><span class="skill-tag">groupby</span><span class="skill-tag">agg</span>
+              </div>
+            </div>
+            <div class="de-card">
+              <div class="de-label">DE-2</div>
+              <div class="de-title">SQL-style JOIN</div>
+              <div class="de-desc">pd.merge() simulating memberships INNER JOIN plans on plan_id</div>
+              <div class="skill-tags">
+                <span class="skill-tag">merge</span><span class="skill-tag">rdbms</span><span class="skill-tag">join</span>
+              </div>
+            </div>
+            <div class="de-card">
+              <div class="de-label">DE-3</div>
+              <div class="de-title">ETL Pipeline</div>
+              <div class="de-desc">Extract → Transform → Load with PII scrubbing and derived columns</div>
+              <div class="skill-tags">
+                <span class="skill-tag">etl</span><span class="skill-tag">transform</span><span class="skill-tag">pipeline</span>
+              </div>
+            </div>
+            <div class="de-card">
+              <div class="de-label">DE-4</div>
+              <div class="de-title">Data Quality</div>
+              <div class="de-desc">5-check DQ report: nulls, duplicates, invalid status, phone, referral</div>
+              <div class="skill-tags">
+                <span class="skill-tag">validation</span><span class="skill-tag">profiling</span>
+              </div>
+            </div>
+            <div class="de-card">
+              <div class="de-label">DE-5</div>
+              <div class="de-title">Batch Processing</div>
+              <div class="de-desc">Spark-style partitioned batch simulation with configurable batch size</div>
+              <div class="skill-tags">
+                <span class="skill-tag">batch</span><span class="skill-tag">spark</span><span class="skill-tag">partition</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PLANS VIEW ════════════════════════════════════ -->
+      <div id="page-plans-view" class="page" style="display:none">
+        <div class="tab-bar">
+          <button class="tab active" onclick="switchTab('plans-view','plans-all',this)">All Plans</button>
+          <button class="tab" onclick="switchTab('plans-view','plans-filter',this)">Filter & Search</button>
+          <button class="tab" onclick="switchTab('plans-view','plans-manage',this)">Manage</button>
+        </div>
+
+        <div id="tab-plans-all">
+          <div id="pv-plans-grid" class="plans-grid">Loading…</div>
+        </div>
+
+        <div id="tab-plans-filter" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div class="param-row"><div class="param-label">Max Price (₹)</div><input class="param-input" id="pf-max-price" type="number" placeholder="e.g. 2000"/></div>
+            <div class="param-row"><div class="param-label">Max Duration (months)</div><input class="param-input" id="pf-max-dur" type="number" placeholder="e.g. 6"/></div>
+            <div class="param-row"><div class="param-label">Includes Classes</div>
+              <select id="pf-classes"><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select></div>
+            <div class="param-row"><div class="param-label">Includes Trainer</div>
+              <select id="pf-trainer"><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <div style="flex:1"><div class="param-label">Keyword Search</div><input class="param-input" id="pf-keyword" placeholder="basic / classes / trainer…"/></div>
+            <div style="display:flex;align-items:flex-end"><button class="send-btn" onclick="filterPlans()">Search</button></div>
+          </div>
+          <div id="pv-filter-results"></div>
+        </div>
+
+        <div id="tab-plans-manage" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <div>
+              <div class="section-header"><div class="section-title">Create Plan</div></div>
+              <div class="param-grid" style="margin-bottom:12px">
+                <div class="param-row"><div class="param-label">Name <span class="param-required">*</span></div><input class="param-input" id="np-name" placeholder="Diamond"/></div>
+                <div class="param-row"><div class="param-label">Duration (months) <span class="param-required">*</span></div><input class="param-input" id="np-dur" type="number" value="6"/></div>
+                <div class="param-row"><div class="param-label">Price (₹) <span class="param-required">*</span></div><input class="param-input" id="np-price" type="number" value="2500"/></div>
+                <div class="param-row"><div class="param-label">Includes Classes</div><select id="np-classes"><option value="false">No</option><option value="true">Yes</option></select></div>
+                <div class="param-row"><div class="param-label">Includes Trainer</div><select id="np-trainer"><option value="false">No</option><option value="true">Yes</option></select></div>
+              </div>
+              <button class="send-btn" onclick="createPlan()">+ Create Plan</button>
+            </div>
+            <div>
+              <div class="section-header"><div class="section-title">Delete Plan</div></div>
+              <div class="param-grid" style="margin-bottom:12px">
+                <div class="param-row"><div class="param-label">Plan ID <span class="param-required">*</span></div><input class="param-input" id="del-plan-id" type="number" placeholder="1"/></div>
+              </div>
+              <button class="send-btn" style="background:var(--red)" onclick="deletePlan()">Delete Plan</button>
+            </div>
+          </div>
+          <div id="pm-response" style="margin-top:16px"></div>
+        </div>
+      </div>
+
+      <!-- ══ MEMBERS VIEW ══════════════════════════════════ -->
+      <div id="page-members-view" class="page" style="display:none">
+        <div class="tab-bar">
+          <button class="tab active" onclick="switchTab('members-view','mb-all',this)">All Members</button>
+          <button class="tab" onclick="switchTab('members-view','mb-enroll',this)">Enroll</button>
+          <button class="tab" onclick="switchTab('members-view','mb-actions',this)">Actions</button>
+        </div>
+
+        <div id="tab-mb-all">
+          <div style="margin-bottom:12px">
+            <input class="param-input" style="width:300px" id="mb-search" placeholder="Search by name…" oninput="searchMembers(this.value)"/>
+          </div>
+          <table class="members-table">
+            <thead><tr><th>ID</th><th>Name</th><th>Plan</th><th>Duration</th><th>Fee</th><th>Mode</th><th>Status</th><th>Month</th></tr></thead>
+            <tbody id="mb-tbody"><tr><td colspan="8" style="color:var(--text3)">Loading…</td></tr></tbody>
+          </table>
+        </div>
+
+        <div id="tab-mb-enroll" style="display:none">
+          <div style="max-width:480px">
+            <div class="param-grid" style="margin-bottom:14px">
+              <div class="param-row"><div class="param-label">Member Name <span class="param-required">*</span></div><input class="param-input" id="en-name" placeholder="Aarav Sharma"/></div>
+              <div class="param-row"><div class="param-label">Phone <span class="param-required">*</span></div><input class="param-input" id="en-phone" placeholder="9876543210 (min 10 digits)"/></div>
+              <div class="param-row"><div class="param-label">Plan ID <span class="param-required">*</span></div><input class="param-input" id="en-plan" type="number" placeholder="1–5" value="3"/></div>
+              <div class="param-row"><div class="param-label">Start Month <span class="param-required">*</span></div><input class="param-input" id="en-month" placeholder="July"/></div>
+              <div class="param-row"><div class="param-label">Payment Mode</div><select id="en-mode"><option value="cash">Cash</option><option value="emi">EMI (+₹200)</option></select></div>
+              <div class="param-row"><div class="param-label">Referral Code</div><input class="param-input" id="en-ref" placeholder="REF123 (5% off)"/></div>
+            </div>
+            <button class="send-btn" onclick="enrollMember()">Enroll Member</button>
+            <div id="en-response" style="margin-top:14px"></div>
+          </div>
+        </div>
+
+        <div id="tab-mb-actions" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+            <div>
+              <div class="section-header"><div class="section-title">Freeze Membership</div></div>
+              <div class="param-row" style="margin-bottom:10px"><div class="param-label">Membership ID</div><input class="param-input" id="frz-id" type="number" placeholder="1"/></div>
+              <button class="send-btn" style="background:rgba(108,99,255,0.3);color:var(--accent2)" onclick="freezeMember()">Freeze</button>
+            </div>
+            <div>
+              <div class="section-header"><div class="section-title">Reactivate Membership</div></div>
+              <div class="param-row" style="margin-bottom:10px"><div class="param-label">Membership ID</div><input class="param-input" id="react-id" type="number" placeholder="1"/></div>
+              <button class="send-btn" style="background:rgba(34,211,160,0.2);color:var(--green)" onclick="reactivateMember()">Reactivate</button>
+            </div>
+          </div>
+          <div id="mb-action-response" style="margin-top:16px"></div>
+        </div>
+      </div>
+
+      <!-- ══ PLANS API ══════════════════════════════════════ -->
+      <div id="page-plans-api" class="page" style="display:none">
+        <!-- GET /plans -->
+        <div class="endpoint-card" id="ep-get-plans">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-get-plans')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/plans</span>
+            <span class="endpoint-desc">All plans with stats</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <button class="send-btn" onclick="callApi('GET','/plans',{},'ep-get-plans-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-get-plans-res"></div>
+          </div>
+        </div>
+
+        <!-- GET /plans/summary -->
+        <div class="endpoint-card" id="ep-plans-summary">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-plans-summary')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/plans/summary</span>
+            <span class="endpoint-desc">Stats: cheapest, most expensive</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <button class="send-btn" onclick="callApi('GET','/plans/summary',{},'ep-plans-summary-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-plans-summary-res"></div>
+          </div>
+        </div>
+
+        <!-- GET /plans/filter -->
+        <div class="endpoint-card" id="ep-plans-filter">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-plans-filter')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/plans/filter</span>
+            <span class="endpoint-desc">Filter by price, duration, features</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-grid" style="grid-template-columns:1fr 1fr">
+              <div class="param-row"><div class="param-label">max_price</div><input class="param-input" id="fp-max_price" placeholder="2000"/></div>
+              <div class="param-row"><div class="param-label">max_duration</div><input class="param-input" id="fp-max_duration" placeholder="6"/></div>
+              <div class="param-row"><div class="param-label">includes_classes</div><select id="fp-includes_classes"><option value="">—</option><option>true</option><option>false</option></select></div>
+              <div class="param-row"><div class="param-label">includes_trainer</div><select id="fp-includes_trainer"><option value="">—</option><option>true</option><option>false</option></select></div>
+            </div>
+            <button class="send-btn" onclick="callApiQuery('GET','/plans/filter',['max_price','max_duration','includes_classes','includes_trainer'],'fp-','ep-plans-filter-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-plans-filter-res"></div>
+          </div>
+        </div>
+
+        <!-- GET /plans/search -->
+        <div class="endpoint-card" id="ep-plans-search">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-plans-search')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/plans/search</span>
+            <span class="endpoint-desc">Keyword search (classes/trainer special)</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-row"><div class="param-label">keyword <span class="param-required">*</span></div><input class="param-input" id="ps-keyword" placeholder="classes"/></div>
+            <button class="send-btn" onclick="callApiQuery('GET','/plans/search',['keyword'],'ps-','ep-plans-search-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-plans-search-res"></div>
+          </div>
+        </div>
+
+        <!-- GET /plans/sort -->
+        <div class="endpoint-card" id="ep-plans-sort">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-plans-sort')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/plans/sort</span>
+            <span class="endpoint-desc">Sort by price, name, duration</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-grid" style="grid-template-columns:1fr 1fr">
+              <div class="param-row"><div class="param-label">sort_by</div><select id="psort-sort_by"><option>price</option><option>name</option><option>duration_months</option></select></div>
+              <div class="param-row"><div class="param-label">order</div><select id="psort-order"><option>asc</option><option>desc</option></select></div>
+            </div>
+            <button class="send-btn" onclick="callApiQuery('GET','/plans/sort',['sort_by','order'],'psort-','ep-plans-sort-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-plans-sort-res"></div>
+          </div>
+        </div>
+
+        <!-- GET /plans/page -->
+        <div class="endpoint-card" id="ep-plans-page">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-plans-page')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/plans/page</span>
+            <span class="endpoint-desc">Paginate plans</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-grid" style="grid-template-columns:1fr 1fr">
+              <div class="param-row"><div class="param-label">page</div><input class="param-input" id="pp-page" value="1" type="number"/></div>
+              <div class="param-row"><div class="param-label">limit</div><input class="param-input" id="pp-limit" value="2" type="number"/></div>
+            </div>
+            <button class="send-btn" onclick="callApiQuery('GET','/plans/page',['page','limit'],'pp-','ep-plans-page-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-plans-page-res"></div>
+          </div>
+        </div>
+
+        <!-- POST /plans -->
+        <div class="endpoint-card" id="ep-post-plan">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-post-plan')">
+            <span class="method-badge method-POST">POST</span>
+            <span class="endpoint-path">/plans</span>
+            <span class="endpoint-desc">Create new plan (201)</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-grid" style="grid-template-columns:1fr 1fr">
+              <div class="param-row"><div class="param-label">name <span class="param-required">*</span></div><input class="param-input" id="cp-name" placeholder="Diamond"/></div>
+              <div class="param-row"><div class="param-label">duration_months <span class="param-required">*</span></div><input class="param-input" id="cp-duration_months" type="number" value="6"/></div>
+              <div class="param-row"><div class="param-label">price <span class="param-required">*</span></div><input class="param-input" id="cp-price" type="number" value="2500"/></div>
+              <div class="param-row"><div class="param-label">includes_classes</div><select id="cp-includes_classes"><option value="false">false</option><option value="true">true</option></select></div>
+              <div class="param-row"><div class="param-label">includes_trainer</div><select id="cp-includes_trainer"><option value="false">false</option><option value="true">true</option></select></div>
+            </div>
+            <button class="send-btn" onclick="callApiBody('POST','/plans',{name:'cp-name',duration_months:'cp-duration_months',price:'cp-price',includes_classes:'cp-includes_classes',includes_trainer:'cp-includes_trainer'},'ep-post-plan-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-post-plan-res"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MEMBERSHIPS API ════════════════════════════════ -->
+      <div id="page-memberships-api" class="page" style="display:none">
+        <div class="endpoint-card" id="ep-get-members">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-get-members')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/memberships</span>
+            <span class="endpoint-desc">All memberships</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <button class="send-btn" onclick="callApi('GET','/memberships',{},'ep-get-members-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-get-members-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-post-member">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-post-member')">
+            <span class="method-badge method-POST">POST</span>
+            <span class="endpoint-path">/memberships</span>
+            <span class="endpoint-desc">Enroll member with fee calculation</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-grid" style="grid-template-columns:1fr 1fr">
+              <div class="param-row"><div class="param-label">member_name <span class="param-required">*</span></div><input class="param-input" id="em-member_name" placeholder="Aarav Sharma"/></div>
+              <div class="param-row"><div class="param-label">phone <span class="param-required">*</span></div><input class="param-input" id="em-phone" placeholder="9876543210"/></div>
+              <div class="param-row"><div class="param-label">plan_id <span class="param-required">*</span></div><input class="param-input" id="em-plan_id" type="number" value="3"/></div>
+              <div class="param-row"><div class="param-label">start_month <span class="param-required">*</span></div><input class="param-input" id="em-start_month" placeholder="July"/></div>
+              <div class="param-row"><div class="param-label">payment_mode</div><select id="em-payment_mode"><option>cash</option><option>emi</option></select></div>
+              <div class="param-row"><div class="param-label">referral_code</div><input class="param-input" id="em-referral_code" placeholder="REF123"/></div>
+            </div>
+            <button class="send-btn" onclick="callApiBody('POST','/memberships',{member_name:'em-member_name',phone:'em-phone',plan_id:'em-plan_id',start_month:'em-start_month',payment_mode:'em-payment_mode',referral_code:'em-referral_code'},'ep-post-member-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-post-member-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-mb-search">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-mb-search')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/memberships/search</span>
+            <span class="endpoint-desc">Search by member name</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-row"><div class="param-label">member_name <span class="param-required">*</span></div><input class="param-input" id="mbs-member_name" placeholder="Priya"/></div>
+            <button class="send-btn" onclick="callApiQuery('GET','/memberships/search',['member_name'],'mbs-','ep-mb-search-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-mb-search-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-mb-freeze">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-mb-freeze')">
+            <span class="method-badge method-PUT">PUT</span>
+            <span class="endpoint-path">/memberships/{id}/freeze</span>
+            <span class="endpoint-desc">Freeze a membership</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-row"><div class="param-label">membership_id <span class="param-required">*</span></div><input class="param-input" id="frz2-id" type="number" placeholder="3"/></div>
+            <button class="send-btn" onclick="callApiPath('PUT','/memberships/{id}/freeze','frz2-id','ep-mb-freeze-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-mb-freeze-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-mb-react">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-mb-react')">
+            <span class="method-badge method-PUT">PUT</span>
+            <span class="endpoint-path">/memberships/{id}/reactivate</span>
+            <span class="endpoint-desc">Reactivate a membership</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-row"><div class="param-label">membership_id <span class="param-required">*</span></div><input class="param-input" id="react2-id" type="number" placeholder="3"/></div>
+            <button class="send-btn" onclick="callApiPath('PUT','/memberships/{id}/reactivate','react2-id','ep-mb-react-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-mb-react-res"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ CLASSES API ════════════════════════════════════ -->
+      <div id="page-classes-api" class="page" style="display:none">
+        <div class="endpoint-card" id="ep-book-class">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-book-class')">
+            <span class="method-badge method-POST">POST</span>
+            <span class="endpoint-path">/classes/book</span>
+            <span class="endpoint-desc">Book a class (active + classes plan)</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-grid">
+              <div class="param-row"><div class="param-label">member_name <span class="param-required">*</span></div><input class="param-input" id="bc-member_name" placeholder="Aarav Sharma"/></div>
+              <div class="param-row"><div class="param-label">class_name <span class="param-required">*</span></div><input class="param-input" id="bc-class_name" placeholder="Zumba"/></div>
+              <div class="param-row"><div class="param-label">class_date <span class="param-required">*</span></div><input class="param-input" id="bc-class_date" placeholder="2024-08-10" type="date"/></div>
+            </div>
+            <button class="send-btn" onclick="callApiBody('POST','/classes/book',{member_name:'bc-member_name',class_name:'bc-class_name',class_date:'bc-class_date'},'ep-book-class-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-book-class-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-get-bookings">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-get-bookings')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/classes/bookings</span>
+            <span class="endpoint-desc">List all class bookings</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <button class="send-btn" onclick="callApi('GET','/classes/bookings',{},'ep-get-bookings-res')"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-get-bookings-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-cancel-class">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-cancel-class')">
+            <span class="method-badge method-DELETE">DELETE</span>
+            <span class="endpoint-path">/classes/cancel/{booking_id}</span>
+            <span class="endpoint-desc">Cancel a class booking</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="param-row"><div class="param-label">booking_id <span class="param-required">*</span></div><input class="param-input" id="cc-id" type="number" placeholder="1"/></div>
+            <button class="send-btn" onclick="cancelClass()"><span class="idle">▶ Send</span><span class="spin">↻</span></button>
+            <div id="ep-cancel-class-res"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ DATA ENGINEERING API ═══════════════════════════ -->
+      <div id="page-de-api" class="page" style="display:none">
+        <div class="endpoint-card" id="ep-revenue">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-revenue')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/analytics/revenue</span>
+            <span class="endpoint-desc">Pandas groupby revenue analytics</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="de-label">DE-1 · Pandas groupby / agg / describe</div>
+            <button class="send-btn" onclick="callApi('GET','/analytics/revenue',{},'ep-revenue-res')"><span class="idle">▶ Run Analytics</span><span class="spin">↻</span></button>
+            <div id="ep-revenue-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-join">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-join')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/analytics/members-with-plans</span>
+            <span class="endpoint-desc">SQL-style JOIN via pd.merge()</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="de-label">DE-2 · memberships INNER JOIN plans ON plan_id</div>
+            <div class="param-row" style="margin-bottom:10px"><div class="param-label">status filter</div><select id="join-status"><option value="">All</option><option>active</option><option>frozen</option></select></div>
+            <button class="send-btn" onclick="callApiQuery('GET','/analytics/members-with-plans',['status'],'join-','ep-join-res')"><span class="idle">▶ Run JOIN</span><span class="spin">↻</span></button>
+            <div id="ep-join-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-etl">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-etl')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/etl/pipeline-run</span>
+            <span class="endpoint-desc">ETL: Extract → Transform → Load</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="de-label">DE-3 · Extract raw → Transform (title case, tier, PII drop) → Load</div>
+            <button class="send-btn" onclick="callApi('GET','/etl/pipeline-run',{},'ep-etl-res')"><span class="idle">▶ Run ETL</span><span class="spin">↻</span></button>
+            <div id="ep-etl-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-dq">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-dq')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/analytics/data-quality</span>
+            <span class="endpoint-desc">5-check data quality report</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="de-label">DE-4 · Nulls · Duplicates · Status · Phone · Referral</div>
+            <button class="send-btn" onclick="callApi('GET','/analytics/data-quality',{},'ep-dq-res')"><span class="idle">▶ Run DQ Report</span><span class="spin">↻</span></button>
+            <div id="ep-dq-res"></div>
+          </div>
+        </div>
+
+        <div class="endpoint-card" id="ep-batch">
+          <div class="endpoint-header" onclick="toggleEndpoint('ep-batch')">
+            <span class="method-badge method-GET">GET</span>
+            <span class="endpoint-path">/etl/batch-summary</span>
+            <span class="endpoint-desc">Spark-style batch partition simulation</span>
+            <span class="expand-arrow">▼</span>
+          </div>
+          <div class="endpoint-body">
+            <div class="de-label">DE-5 · Configurable batch_size partitioning</div>
+            <div class="param-row" style="margin-bottom:10px"><div class="param-label">batch_size</div><input class="param-input" id="bs-batch_size" type="number" value="2" min="1"/></div>
+            <button class="send-btn" onclick="callApiQuery('GET','/etl/batch-summary',['batch_size'],'bs-','ep-batch-res')"><span class="idle">▶ Run Batch</span><span class="spin">↻</span></button>
+            <div id="ep-batch-res"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Utilities ──────────────────────────────────────────────────
+function baseUrl(){return document.getElementById('base-url').value.replace(/\/$/,'')}
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+(type==='error'?'error':'success');
+  setTimeout(()=>t.className='toast',2800);
+}
+
+function syntaxHighlight(json){
+  return JSON.stringify(json,null,2)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(m){
+      let cls='json-num';
+      if(/^"/.test(m)){cls=/:\s*$/.test(m)?'json-key':'json-str';}
+      else if(/true|false/.test(m)){cls='json-bool';}
+      else if(/null/.test(m)){cls='json-null';}
+      return '<span class="'+cls+'">'+m+'</span>';
+    });
+}
+
+function renderResponse(elId,data,status,ms){
+  const el=document.getElementById(elId);
+  if(!el)return;
+  const ok=status>=200&&status<300;
+  el.innerHTML=`
+    <div class="response-box">
+      <div class="response-meta">
+        <span class="status-pill ${ok?'s2xx':'s4xx'}">${status}</span>
+        <span class="response-time">${ms}ms</span>
+      </div>
+      <pre class="response-pre">${syntaxHighlight(data)}</pre>
+    </div>`;
+}
+
+// ── API Calls ─────────────────────────────────────────────────
+async function callApi(method,path,params,resId){
+  const btn=event.target.closest('button');
+  if(btn){btn.classList.add('loading');btn.disabled=true;}
+  const t0=Date.now();
+  try{
+    const r=await fetch(baseUrl()+path,{method});
+    const data=await r.json();
+    renderResponse(resId,data,r.status,Date.now()-t0);
+    showToast(`${method} ${path} → ${r.status}`);
+  }catch(e){
+    renderResponse(resId,{error:e.message},0,Date.now()-t0);
+    showToast('Connection failed — is the server running?','error');
+  }finally{if(btn){btn.classList.remove('loading');btn.disabled=false;}}
+}
+
+async function callApiQuery(method,path,keys,prefix,resId){
+  const btn=event.target.closest('button');
+  if(btn){btn.classList.add('loading');btn.disabled=true;}
+  const t0=Date.now();
+  try{
+    const params=new URLSearchParams();
+    keys.forEach(k=>{const v=document.getElementById(prefix+k);if(v&&v.value!=='')params.append(k,v.value);});
+    const url=baseUrl()+path+(params.toString()?'?'+params:'');
+    const r=await fetch(url,{method});
+    const data=await r.json();
+    renderResponse(resId,data,r.status,Date.now()-t0);
+    showToast(`${method} ${path} → ${r.status}`);
+  }catch(e){
+    renderResponse(resId,{error:e.message},0,Date.now()-t0);
+    showToast('Connection failed — is the server running?','error');
+  }finally{if(btn){btn.classList.remove('loading');btn.disabled=false;}}
+}
+
+async function callApiBody(method,path,fieldMap,resId){
+  const btn=event.target.closest('button');
+  if(btn){btn.classList.add('loading');btn.disabled=true;}
+  const t0=Date.now();
+  try{
+    const body={};
+    Object.entries(fieldMap).forEach(([k,id])=>{
+      const el=document.getElementById(id);
+      if(!el)return;
+      let v=el.value;
+      if(v===''||v===undefined)return;
+      if(['true','false'].includes(v))v=v==='true';
+      else if(!isNaN(v)&&v!=='')v=Number(v);
+      body[k]=v;
+    });
+    const r=await fetch(baseUrl()+path,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    renderResponse(resId,data,r.status,Date.now()-t0);
+    showToast(`${method} ${path} → ${r.status}`);
+  }catch(e){
+    renderResponse(resId,{error:e.message},0,Date.now()-t0);
+    showToast('Connection failed — is the server running?','error');
+  }finally{if(btn){btn.classList.remove('loading');btn.disabled=false;}}
+}
+
+async function callApiPath(method,pathTemplate,idField,resId){
+  const btn=event.target.closest('button');
+  if(btn){btn.classList.add('loading');btn.disabled=true;}
+  const t0=Date.now();
+  const id=document.getElementById(idField).value;
+  const path=pathTemplate.replace('{id}',id);
+  try{
+    const r=await fetch(baseUrl()+path,{method});
+    const data=await r.json();
+    renderResponse(resId,data,r.status,Date.now()-t0);
+    showToast(`${method} ${path} → ${r.status}`);
+  }catch(e){
+    renderResponse(resId,{error:e.message},0,Date.now()-t0);
+    showToast('Connection failed — is the server running?','error');
+  }finally{if(btn){btn.classList.remove('loading');btn.disabled=false;}}
+}
+
+// ── Navigation ────────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+  document.getElementById('page-'+id).style.display='block';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  event.target.closest('.nav-item').classList.add('active');
+  const titles={
+    'dashboard':'Dashboard','plans-view':'Plans','members-view':'Members',
+    'plans-api':'Plans API','memberships-api':'Memberships API',
+    'classes-api':'Classes API','de-api':'Data Engineering'
+  };
+  document.getElementById('page-title').textContent=titles[id]||id;
+  if(id==='dashboard')loadDashboard();
+  if(id==='plans-view')loadPlansView();
+  if(id==='members-view')loadMembersView();
+}
+
+function switchTab(page,tab,btn){
+  const prefix='tab-'+page.split('-')[0]+'-';
+  document.querySelectorAll('[id^="tab-'+page.split('-')[0]+'"]').forEach(t=>{
+    if(t.id.startsWith('tab-'+page.split('-')[0]))t.style.display='none';
+  });
+  // show clicked tab
+  const mapping={'plans-view':['plans-all','plans-filter','plans-manage'],'members-view':['mb-all','mb-enroll','mb-actions']};
+  const tabs=mapping[page]||[];
+  tabs.forEach(t=>{ const el=document.getElementById('tab-'+t); if(el)el.style.display='none'; });
+  const el=document.getElementById('tab-'+tab);if(el)el.style.display='block';
+  btn.closest('.tab-bar').querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleEndpoint(id){
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ── Dashboard ─────────────────────────────────────────────────
+async function loadDashboard(){
+  try{
+    const [pr,mr]=await Promise.all([
+      fetch(baseUrl()+'/plans').then(r=>r.json()).catch(()=>null),
+      fetch(baseUrl()+'/analytics/revenue').then(r=>r.json()).catch(()=>null)
+    ]);
+    if(pr){
+      document.getElementById('d-plans').textContent=pr.total||'—';
+      const g=document.getElementById('d-plans-grid');
+      g.innerHTML=(pr.plans||[]).map(p=>`
+        <div class="plan-card">
+          <div class="plan-name">${p.name}</div>
+          <div class="plan-price">₹${p.price}<span> / ${p.duration_months}mo</span></div>
+          <div class="plan-badges">
+            ${p.includes_classes?'<span class="badge badge-green">Classes</span>':''}
+            ${p.includes_trainer?'<span class="badge badge-green">Trainer</span>':''}
+            ${!p.includes_classes&&!p.includes_trainer?'<span class="badge badge-gray">Basic</span>':''}
+          </div>
+        </div>`).join('');
+    }
+    if(mr){
+      document.getElementById('d-members').textContent=mr.summary?.total_members||'—';
+      document.getElementById('d-revenue').textContent=mr.summary?.total_revenue?'₹'+mr.summary.total_revenue.toLocaleString():'—';
+      document.getElementById('d-active').textContent=mr.summary?.active_members||'—';
+    }
+    const membR=await fetch(baseUrl()+'/memberships').then(r=>r.json()).catch(()=>null);
+    if(membR){
+      const tbody=document.getElementById('d-members-body');
+      tbody.innerHTML=(membR.memberships||[]).map(m=>`
+        <tr>
+          <td>${m.member_name}</td>
+          <td>${m.plan_name}</td>
+          <td style="font-family:var(--mono)">₹${m.total_fee}</td>
+          <td><span class="status-tag ${m.status==='active'?'status-active':'status-frozen'}">${m.status}</span></td>
+          <td>${m.start_month}</td>
+        </tr>`).join('');
+      const dot=document.getElementById('status-dot');
+      dot.style.background='var(--green)';
+    }
+  }catch(e){console.log('Dashboard load error:',e);}
+}
+
+async function loadPlansView(){
+  try{
+    const r=await fetch(baseUrl()+'/plans').then(r=>r.json());
+    const g=document.getElementById('pv-plans-grid');
+    g.innerHTML=(r.plans||[]).map(p=>`
+      <div class="plan-card">
+        <div class="plan-name">${p.name}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">ID: ${p.id} · ${p.duration_months} months</div>
+        <div class="plan-price">₹${p.price}<span> total</span></div>
+        <div class="plan-badges">
+          ${p.includes_classes?'<span class="badge badge-green">Classes</span>':''}
+          ${p.includes_trainer?'<span class="badge badge-green">Trainer</span>':''}
+          ${!p.includes_classes&&!p.includes_trainer?'<span class="badge badge-gray">No extras</span>':''}
+        </div>
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function loadMembersView(){
+  try{
+    const r=await fetch(baseUrl()+'/memberships').then(r=>r.json());
+    renderMembersTable(r.memberships||[]);
+  }catch(e){}
+}
+
+function renderMembersTable(list){
+  const tbody=document.getElementById('mb-tbody');
+  tbody.innerHTML=list.map(m=>`
+    <tr>
+      <td style="font-family:var(--mono);color:var(--text3)">#${m.membership_id}</td>
+      <td>${m.member_name}</td>
+      <td>${m.plan_name}</td>
+      <td>${m.duration_months}mo</td>
+      <td style="font-family:var(--mono)">₹${m.total_fee}</td>
+      <td>${m.payment_mode}</td>
+      <td><span class="status-tag ${m.status==='active'?'status-active':'status-frozen'}">${m.status}</span></td>
+      <td>${m.start_month}</td>
+    </tr>`).join('');
+}
+
+let allMembers=[];
+async function searchMembers(q){
+  if(!allMembers.length){
+    try{const r=await fetch(baseUrl()+'/memberships').then(r=>r.json());allMembers=r.memberships||[];}catch(e){return;}
+  }
+  const flt=allMembers.filter(m=>m.member_name.toLowerCase().includes(q.toLowerCase()));
+  renderMembersTable(flt);
+}
+
+// ── Quick action helpers ───────────────────────────────────────
+async function filterPlans(){
+  const params=new URLSearchParams();
+  const mp=document.getElementById('pf-max-price').value;
+  const md=document.getElementById('pf-max-dur').value;
+  const cl=document.getElementById('pf-classes').value;
+  const tr=document.getElementById('pf-trainer').value;
+  const kw=document.getElementById('pf-keyword').value;
+  if(mp)params.append('max_price',mp);
+  if(md)params.append('max_duration',md);
+  if(cl)params.append('includes_classes',cl);
+  if(tr)params.append('includes_trainer',tr);
+
+  const endpoint=kw?`/plans/search?keyword=${encodeURIComponent(kw)}`:`/plans/filter?${params}`;
+  try{
+    const r=await fetch(baseUrl()+endpoint);
+    const data=await r.json();
+    const g=document.getElementById('pv-filter-results');
+    const plans=(data.plans||[]);
+    g.innerHTML=`<div style="color:var(--text3);font-size:12px;margin-bottom:10px">${plans.length} results</div>
+    <div class="plans-grid">${plans.map(p=>`
+      <div class="plan-card">
+        <div class="plan-name">${p.name}</div>
+        <div class="plan-price">₹${p.price}<span> / ${p.duration_months}mo</span></div>
+        <div class="plan-badges">
+          ${p.includes_classes?'<span class="badge badge-green">Classes</span>':''}
+          ${p.includes_trainer?'<span class="badge badge-green">Trainer</span>':''}
+        </div>
+      </div>`).join('')}</div>`;
+  }catch(e){showToast('Server not reachable','error');}
+}
+
+async function createPlan(){
+  const name=document.getElementById('np-name').value;
+  const dur=parseInt(document.getElementById('np-dur').value);
+  const price=parseInt(document.getElementById('np-price').value);
+  const cls=document.getElementById('np-classes').value==='true';
+  const trn=document.getElementById('np-trainer').value==='true';
+  try{
+    const r=await fetch(baseUrl()+'/plans',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,duration_months:dur,price,includes_classes:cls,includes_trainer:trn})});
+    const d=await r.json();
+    renderResponse('pm-response',d,r.status,0);
+    if(r.ok)showToast('Plan created!');else showToast(d.detail||'Error','error');
+  }catch(e){showToast('Server not reachable','error');}
+}
+
+async function deletePlan(){
+  const id=document.getElementById('del-plan-id').value;
+  try{
+    const r=await fetch(baseUrl()+'/plans/'+id,{method:'DELETE'});
+    const d=await r.json();
+    renderResponse('pm-response',d,r.status,0);
+    if(r.ok)showToast('Plan deleted');else showToast(d.detail||'Error','error');
+  }catch(e){showToast('Server not reachable','error');}
+}
+
+async function enrollMember(){
+  const body={
+    member_name:document.getElementById('en-name').value,
+    phone:document.getElementById('en-phone').value,
+    plan_id:parseInt(document.getElementById('en-plan').value),
+    start_month:document.getElementById('en-month').value,
+    payment_mode:document.getElementById('en-mode').value,
+    referral_code:document.getElementById('en-ref').value,
+  };
+  try{
+    const r=await fetch(baseUrl()+'/memberships',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    renderResponse('en-response',d,r.status,0);
+    if(r.ok){showToast('Member enrolled!');allMembers=[];}
+    else showToast(d.detail||'Validation error','error');
+  }catch(e){showToast('Server not reachable','error');}
+}
+
+async function freezeMember(){
+  const id=document.getElementById('frz-id').value;
+  try{
+    const r=await fetch(baseUrl()+'/memberships/'+id+'/freeze',{method:'PUT'});
+    const d=await r.json();
+    renderResponse('mb-action-response',d,r.status,0);
+    if(r.ok)showToast('Membership frozen');else showToast(d.detail||'Error','error');
+  }catch(e){showToast('Server not reachable','error');}
+}
+
+async function reactivateMember(){
+  const id=document.getElementById('react-id').value;
+  try{
+    const r=await fetch(baseUrl()+'/memberships/'+id+'/reactivate',{method:'PUT'});
+    const d=await r.json();
+    renderResponse('mb-action-response',d,r.status,0);
+    if(r.ok)showToast('Membership reactivated');else showToast(d.detail||'Error','error');
+  }catch(e){showToast('Server not reachable','error');}
+}
+
+async function cancelClass(){
+  const id=document.getElementById('cc-id').value;
+  try{
+    const r=await fetch(baseUrl()+'/classes/cancel/'+id,{method:'DELETE'});
+    const d=await r.json();
+    renderResponse('ep-cancel-class-res',d,r.status,0);
+    if(r.ok)showToast('Booking cancelled');else showToast(d.detail||'Error','error');
+  }catch(e){showToast('Server not reachable','error');}
+}
+
+async function checkConnection(){
+  const url=baseUrl();
+  const dot=document.getElementById('status-dot');
+  dot.style.background='var(--amber)';
+  try{
+    const r=await fetch(url+'/');
+    if(r.ok){
+      dot.style.background='var(--green)';
+      showToast('Server Connected ✅');
+    }else{
+      dot.style.background='var(--red)';
+      showToast('Server responded but issue ⚠️ ('+r.status+')','error');
+    }
+  }catch(e){
+    dot.style.background='var(--red)';
+    showToast('Server NOT reachable ❌ Check backend or CORS','error');
+    console.error('Ping error:',e);
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  checkConnection();
+  loadDashboard();
+});
+</script>
+</body>
+</html>
