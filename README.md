@@ -303,15 +303,6 @@ Serialising to JSON text (`json.dumps`) keeps the full breakdown in a single col
 **Why `Base.metadata.create_all()` instead of Alembic?**
 For a portfolio/internship project, auto-creation on startup is the simplest approach. In a production system, you would use Alembic for versioned, reversible schema migrations.
 
----
 
-## 📝 License
 
-MIT License — see [LICENSE](LICENSE) for details.
 
----
-
-<div align="center">
-Built as part of the FastAPI Internship at <strong>Innomatics Research Labs</strong> 🚀<br>
-Extended with PostgreSQL + Data Engineering features for Associate Data Engineer role alignment.
-</div>
